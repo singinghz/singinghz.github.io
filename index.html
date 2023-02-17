@@ -1,83 +1,197 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-        body {
-            font: 16px/28px 'Microsoft YaHei';
-        }
+    <script type="text/javascript" src="./jquery.js"></script>
+    <link href="黄座32020210227大作业.css" type="text/css" rel="stylesheet" />
+    <!-- <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script> -->
+    <script id="MathJax-script" async src="./tex-mml-chtml.js">
+    </script>
+    <script type="text/javascript">
+        // pwd = "./cea.rst"
+        $(document).ready(function () {
+            $.get("./cea.rst", function Sphi(data) {
+                strarr = data.split("\n")
+                heading = false
+                table = false
+                image = false
+                para = false
+                eq_block = false
+                notestr = ""
+                parastr = ""
+                imagestr = ""
+                tablestr = ""
+                for (i = 0; i < strarr.length; i++) {
+                    // $("body").append("<p>" + data + "</p>")
+                    if (strarr[i].includes("******")) {
+                        heading = !heading
+                    }
+                    if (heading && !strarr[i].includes("******")) {
+                        $("body").append("<h1>" + strarr[i] + "</h1>")
+                    }
+                    if (!table && strarr[i].includes("+----")) {
+                        table = true
+                        tablestr += "<div><table id = 'mytb' border = '1px solid' cellpadding = '10' >"
+                    }
+                    if (table && strarr[i] == "") {
+                        table = false
+                        tablestr += "</table></div>"
+                        $("body").append(tablestr)
+                        tablestr = ""
+                    }
+                    if (table && !strarr[i].includes("+----")) {
+                        tablestr += "<tr>"
+                        seg = strarr[i].split("|")
+                        for (j = 0; j < seg.length; j++) {
+                            if (seg[j] != "") {
+                                if (seg[j].includes("**")) {
+                                    seg[j] = seg[j].split("**").join("")
+                                    // console.log(seg[j].length)
+                                    seg[j] = "<b>" + seg[j] + "</b>"
+                                }
 
-        h1 {
-            text-align: center;
-            /* 文字不加粗 */
-            font-weight: 400;
-        }
+                                tablestr += "<td>" + seg[j] + "</td>"
+                            }
+                        }
+                        tablestr += "</tr>"
+                    }
+                    if (strarr[i].includes("figure")) {
+                        image = !image
+                    }
+                    if (image && strarr[i].includes(":")) {
+                        seg = strarr[i].split(":")
+                        for (j = 0; j < seg.length; j++) {
+                            if (seg[j].includes("./")) {
+                                imagestr += "<div class = 'image'><img id = 'img' src = " + seg[j]
+                            }
+                            if (seg[j].includes("width")) {
+                                seg[j + 1] = seg[j + 1].replace("px", "")
+                                imagestr += " width = " + seg[j + 1]
+                                // console.log(seg[j+1])
+                            }
+                            if (seg[j].includes("align")) {
+                                imagestr += " align = " + seg[j + 1]
+                                // console.log(seg[j+1])
+                            }
+                            if (seg[j].includes("alt")) {
+                                imagestr += " alt = '" + seg[j + 1] + "'"
+                                // console.log(imagestr)
+                            }
+                        }
+                    }
+                    if (image && strarr[i] == "") {
+                        image = false
+                        imagestr += "/></div>"
+                        $("body").append(imagestr)
+                        imagestr = ""
+                    }
+                
+                    if (!table && !heading && !image) {
+                        if (strarr[i] == "") {
+                            para = true
+                            if (parastr != "") {
+                                // console.log(parastr)
+                                $("body").append("<p>" + parastr + "</p>")
+                                pare = false
+                                parastr = ""
+                            }
+                        }
+                        if (strarr[i].includes("#####")) {
+                            para = false
+                            if (parastr != "") {
+                                $("body").append("<h2>" + parastr + "</h2>")
+                                // pare = false
+                                parastr = ""
+                            }
+                        }
+                        if (para && !strarr[i].includes("*******") && strarr[i] != "") {
+                            if (strarr[i].includes(":math:")) {
+                                str1 = strarr[i].replace(":math:`", "\\(").replace("`", "\\)")
+                                // console.log(str)
+                                parastr += (str1 + " ")
+                            }
+                            else if (strarr[i].includes("``")) {
+                                seg = strarr[i].split(" ")
+                                // parastr += (seg + " ")
+                                for (m = 0; m < seg.length; m++) {
+                                    if (seg[m].includes("``")) {
+                                        str2 = seg[m].split("``").join("")
+                                        // console.log(str)
+                                        parastr += ("<em>" + str2 + "</em> ")
+                                    }
+                                    else {
+                                        parastr += (seg[m] + " ")
+                                        // console.log(parastr)
+                                    }
+                                }
+                            }
+                            else if (strarr[i].includes("note")) {
+                                str3 = strarr[i].replace(".. note:: ", "note :").split(":")
+                                // console.log(str3)
+                                parastr += '<p id= "note" class="admonition-title"> Note </p>' + '<p>' + str3[1] + '</p>'
+                            }
+                            else if (strarr[i].includes("Wikipedia")) {
+                                str4 = strarr[i].replace("#. `Wikipedia:", "").replace(">`_", "")
+                                str4 = str4.split("<")
+                                parastr += ("<li>" + "<a href =" + str4[1] + ">" + str4[0] + "</a></li>")
+                            }
+                            else if (strarr[i].includes("include")) {
+                                pwd = strarr[i].split(" ")[2].replace(".","")
+                                // console.log(pwd)
+                                var temp = null
+                                temp = new XMLHttpRequest()
+                                temp.open("GET", pwd, false)
+                                // console.log(parastr)
+                                temp.send(null);
+                                temp = String(temp.responseText)
+                                temp = temp.split("\n")
+                                // parastr += temp
+                                // console.log(temp)
+                                for (j = 0; j < temp.length; j++) {
+                                    // console.log(temp[j])
+                                    temp[j] = temp[j].split("*").join("")
+                                    if (temp[j].includes("``")) {
+                                        temp[j] = temp[j].replace("``", "<em>").replace("``", "</em>")
+                                    }
+                                    if (temp[j].includes(":option:")) {
+                                        temp[j] = temp[j].replace(":option:`", "<strong>").replace("`", "</strong>")
+                                    }
+                                    if (temp[j].includes("ref")){
+                                        temp[j] = temp[j].replace(":ref:`", "<a href = ''>").replace("`", "</a>")
+                                    }
+                                    if (temp[j].includes("option") && j ==0) {
+                                        str5 = temp[j].replace(".. option:: ", "")
+                                        parastr += ("<h3>"+str5 + " </h3>")
+                                        // console.log(parastr)
+                                    }
+                                    // if (temp[j].includes("ref")) {
 
-        .grey {
-            color: #888;
-            font-size: 12px;
-            text-align: center;
-        }
+                                    // }
+                                    else {
+                                        // console.log(temp[j])
+                                        parastr += ("<p>"+temp[j] + "\n </p>")
+                                    }
 
-        a {
-            text-decoration: none;
-        }
+                                }
+                                // console.log(temp.responseText)
+                            }
+                            else {
+                                parastr += (strarr[i] + " ")
+                                // console.log([parastr])
+                            }
 
-        .search {
-            color: #666;
-        }
+                        }
+                    }
+                }
+                $.getScript("./tex-mml-chtml.js")
+                // $("h2").css({color : "red"})
+            })
+        })
+    </script>
 
-        p {
-            /* 首行缩进2字符 */
-            text-indent: 2em;
-
-        }
-
-        .pic {
-            /* 不能直接给图片加居中对齐 */
-            text-align: center;
-        }
-
-        .footer {
-            color: #888;
-            font-size: 12px;
-
-        }
-    </style>
 </head>
 
 <body>
-    <h1>北方高温明日达鼎盛 京津冀多地地表温度将超60℃</h1>
-    <div class="grey">2019-07-03 16:31:47 来源: < a href=" ">中国天气网</ a> <input type="text" value="请输入查询条件 " class="search">
-        <button>搜索</button></div>
 
-    <!--    水平线 -->
-    <hr>
+</body>
 
-    <p>
-        中国天气网讯今天（3日），华北、黄淮多地出现高温天气，截至下午2点，北京、天津、郑州等地
-        气温突破35℃。预报显示，今后三天（3-5日），这一带的高温天气将继续发酵，高温范围以及强度将在4
-        日达到鼎盛，预计北京、天津、石家庄、济南等地明天的最高气温有望突破38℃，其中北京和石家庄的最
-        高气温还有望创今年以来的新高。</p >
-
-    <h4>气温41.4℃！地温66.5！北京强势迎七月首个高温日</h4>
-
-    <p class="pic">
-        < img src="pic.jpeg" alt="">
-    </p >
-
-    <p> 今天，华北、黄淮一带的高温持续发酵，截至今天下午2点，陕西北部、山西西南部、河北南部、北京、天津、山东西部、河南北部最高气温已普遍超过35℃。大城市中，北京、天津、郑州均迎来高温日。</p >
-
-    <p>在阳光暴晒下，地表温度也逐渐走高。今天下午2点，华北黄淮大部地区的地表温度都在50℃以上，部分地区地表温度甚至超过60℃。其中，河北衡水地表温度高达68.3℃，天津站和北京站附近的地表温度分别高达66.6℃和66.5℃。
-    </p >
-    <h4>明日热度再升级！京津冀携手冲击38℃</h4>
-    <p> 中国天气网气象分析师王伟跃介绍，明天（4日），华北、黄淮地区35℃以上的高温天气还将继续升级，并进入鼎盛阶段，高温强度和范围都将发展到最强。
-        明天，北京南部、天津大部、河北中部和南部、山东中部和西部、山西南部局地、河南北部、东北部分地区的最高气温都将达到或超过35℃。</p >
-
-    <p>不过，专家提醒，济南被雨水天气完美绕开，因此未来一周，当地的高温还会天天上岗。在此提醒当地居民注意防暑降温，防范持续高温带来的各种不利影响。（文/张慧 数据支持/王伟跃 胡啸 审核/刘文静 张方丽）</p >
-
-    <p class="footer">本文来源：中国天气网 责任编辑：刘京_NO5631</p >
+</html>
